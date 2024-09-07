@@ -22,6 +22,7 @@
 		"@discordjs/voice": "^0.17.0",
 		"@langchain/core": "^0.2.31",
 		"@langchain/google-genai": "^0.0.26",
+		"@langchain/openai": "^0.2.10",
 		"axios": "^1.7.7",
 		"tweetnacl": "^1.0.3"
 	}
