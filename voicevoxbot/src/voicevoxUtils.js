@@ -110,35 +110,49 @@ export async function playAudio(interaction, text, speakerName, options = {}) {
 }
 
 export async function handleVVCommand(interaction) {
-	const text = interaction.options.getString("text");
-	let speakerName =
-		interaction.options.getString("speaker") || "ずんだもん (ノーマル)";
-	if (speakerName === "custom") {
-		speakerName = interaction.options.getString("custom_speaker");
-	}
-
-	const options = {
-		channelId: interaction.options.getString("channelid"),
-		speed: interaction.options.getNumber("speed"),
-		pitch: interaction.options.getNumber("pitch"),
-		intonation: interaction.options.getNumber("intonation"),
-		volume: interaction.options.getNumber("volume"),
-	};
-
-	await interaction.deferReply({ ephemeral: true });
-
 	try {
+		await interaction.deferReply({ ephemeral: true });
+
+		const text = interaction.options.getString("text");
+		let speakerName =
+			interaction.options.getString("speaker") || "ずんだもん (ノーマル)";
+		if (speakerName === "custom") {
+			speakerName = interaction.options.getString("custom_speaker");
+		}
+
+		const options = {
+			channelId: interaction.options.getString("channelid"),
+			speed: interaction.options.getNumber("speed"),
+			pitch: interaction.options.getNumber("pitch"),
+			intonation: interaction.options.getNumber("intonation"),
+			volume: interaction.options.getNumber("volume"),
+		};
+
+		// ユーザーのボイスチャンネル状態をチェック
+		const voiceChannel = interaction.member.voice.channel;
+		if (!voiceChannel && !options.channelId) {
+			await interaction.editReply({
+				content:
+					"ボイスチャンネルに入室してから、もう一度コマンドを実行してください。",
+				ephemeral: true,
+			});
+			return;
+		}
+
 		await playAudio(interaction, text, speakerName, options);
+
 		await interaction.editReply({
 			content: `読み上げを開始しました。選択された話者: ${speakerName}\n速度: ${options.speed || 1.0}, 音高: ${options.pitch || 0}, 抑揚: ${options.intonation || 1.0}, 音量: ${options.volume || 1.0}`,
 			ephemeral: true,
 		});
 	} catch (error) {
 		console.error("Error in VV command execution:", error);
-		await interaction.editReply({
-			content: "読み上げ中にエラーが発生しました。",
-			ephemeral: true,
-		});
+		await interaction
+			.editReply({
+				content: "読み上げ中にエラーが発生しました。",
+				ephemeral: true,
+			})
+			.catch(console.error);
 	} finally {
 		completeInteraction(interaction.user.id);
 	}

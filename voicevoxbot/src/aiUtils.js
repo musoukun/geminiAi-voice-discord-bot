@@ -76,23 +76,33 @@ async function generateAIResponse(question, userId) {
 }
 
 export async function handleVVAICommand(interaction) {
-	const question = interaction.options.getString("question");
-	const speakerName =
-		interaction.options.getString("speaker") || "ずんだもん (ノーマル)";
-	const channelId = interaction.options.getString("channelid");
-
-	if (!interaction.guild) {
-		await interaction.reply({
-			content: "このコマンドはサーバー内でのみ使用できます。",
-			ephemeral: true,
-		});
-		completeInteraction(interaction.user.id);
-		return;
-	}
-
-	await interaction.deferReply({ ephemeral: true });
-
 	try {
+		await interaction.deferReply({ ephemeral: true });
+
+		const question = interaction.options.getString("question");
+		const speakerName =
+			interaction.options.getString("speaker") || "ずんだもん (ノーマル)";
+		const channelId = interaction.options.getString("channelid");
+
+		if (!interaction.guild) {
+			await interaction.editReply({
+				content: "このコマンドはサーバー内でのみ使用できます。",
+				ephemeral: true,
+			});
+			return;
+		}
+
+		// ユーザーのボイスチャンネル状態をチェック
+		const voiceChannel = interaction.member.voice.channel;
+		if (!voiceChannel && !channelId) {
+			await interaction.editReply({
+				content:
+					"ボイスチャンネルに入室してから、もう一度コマンドを実行してください。",
+				ephemeral: true,
+			});
+			return;
+		}
+
 		console.log("AIに質問:", question);
 
 		const responseText = await generateAIResponse(
@@ -110,10 +120,12 @@ export async function handleVVAICommand(interaction) {
 		});
 	} catch (error) {
 		console.error("Error in VVAI command execution:", error);
-		await interaction.editReply({
-			content: "AIの回答生成または読み上げ中にエラーが発生しました。",
-			ephemeral: true,
-		});
+		await interaction
+			.editReply({
+				content: "AIの回答生成または読み上げ中にエラーが発生しました。",
+				ephemeral: true,
+			})
+			.catch(console.error);
 	} finally {
 		completeInteraction(interaction.user.id);
 	}
