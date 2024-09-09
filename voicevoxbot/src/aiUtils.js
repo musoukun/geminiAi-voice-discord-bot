@@ -24,13 +24,16 @@ const chatHistories = {};
 
 async function generateAIResponse(question, userId) {
 	const lengthLimit = 250;
-	const systemPromptContent = `現在の時刻:{now}\nあなたは質問者の質問に日本語で簡潔にこたえるアシスタントです。
+	const systemPromptContent = `あなたは質問者の質問に日本語で簡潔にこたえるアシスタントです。
     \n質問内容は要約して${lengthLimit}文字以内で回答してください。
     \nわからない場合は「わかりません」と回答してください。
-    \n${lengthLimit}文字以上の文章が長くなりそうな回答を求められた場合は、簡潔に要約して回答してください。要約できなければ
-    \n長文で回答することが難しいことを伝えてください。自身について質問されたら、目的のみを伝えてください。
-    \nメッセージの解答に関してはchat_historyの内容に忠実に基づいて回答してください。
-    \n解答に関してchat_historyの内容以外を解答に含めないでください。会話履歴：{chat_history} 入力内容：（現在の時刻) {now} {input}`;
+    \n${lengthLimit}文字以上の文章が長くなりそうな回答を求められた場合は、簡潔に要約して回答してください。
+		\n要約できなければ、長文で回答することが難しいことを伝えてください。自身について質問されたら、目的のみを伝えてください。
+    \nメッセージの解答に関しては、会話履歴の内容に忠実に基づいて回答してください。
+    \n解答に関して会話履歴の内容以外を解答に含めないでください。
+		\n会話履歴:{chat_history} 
+		\n現在の時刻(MM月DD日 mm時:ss分で回答してください): {now}
+		\n入力内容: {input}`;
 
 	const prompt = ChatPromptTemplate.fromMessages([
 		["system", systemPromptContent],
