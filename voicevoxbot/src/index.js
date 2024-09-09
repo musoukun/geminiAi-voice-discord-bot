@@ -17,7 +17,7 @@ export const { token, applicationId, guildId } = JSON.parse(
 );
 
 // 定数
-export const TIMEOUT = 30 * 60 * 1000; // 30分
+export const TIMEOUT = 10 * 60 * 1000; // 1                                                                                           0分
 export const voiceTmpPath = join(__dirname, "voiceTmp");
 
 // グローバル変数
