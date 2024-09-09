@@ -18,7 +18,7 @@ function checkAndSetInteractionState(interaction) {
 }
 
 // インタラクションの処理完了を記録する関数
-function completeInteraction(userId) {
+export function completeInteraction(userId) {
 	interactionQueue.delete(userId);
 }
 
