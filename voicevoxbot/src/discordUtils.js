@@ -4,6 +4,24 @@ import { handleVVCommand } from "./voicevoxUtils.js";
 import { handleVVAICommand } from "./aiUtils.js";
 import { voicevoxSpeakers, TIMEOUT } from "./index.js";
 
+// インタラクションの状態を追跡するためのMap
+const interactionQueue = new Map();
+
+// インタラクションの処理状態をチェックし、設定する関数
+function checkAndSetInteractionState(interaction) {
+	const userId = interaction.user.id;
+	if (interactionQueue.has(userId)) {
+		return false; // すでに処理中
+	}
+	interactionQueue.set(userId, true);
+	return true; // 処理開始可能
+}
+
+// インタラクションの処理完了を記録する関数
+function completeInteraction(userId) {
+	interactionQueue.delete(userId);
+}
+
 export async function initializeCommands(applicationId, guildId, token) {
 	const normalSpeakers = voicevoxSpeakers.filter((speaker) =>
 		speaker.name.includes("ノーマル")
@@ -137,6 +155,15 @@ export async function handleInteraction(interaction) {
 	if (!interaction.isCommand()) return;
 
 	const { commandName } = interaction;
+	const userId = interaction.user.id;
+
+	if (!checkAndSetInteractionState(interaction)) {
+		await interaction.reply({
+			content: "前回のコマンドの処理が完了するまでお待ちください。",
+			ephemeral: true,
+		});
+		return;
+	}
 
 	try {
 		if (commandName === "vv") {
@@ -152,6 +179,8 @@ export async function handleInteraction(interaction) {
 			content: "コマンドの実行中にエラーが発生しました。",
 			ephemeral: true,
 		});
+	} finally {
+		completeInteraction(userId);
 	}
 }
 
@@ -173,20 +202,25 @@ export async function handleLVVCommand(interaction) {
 	const guild = interaction.guild;
 	const connection = getVoiceConnection(guild.id);
 
-	if (connection) {
-		connection.destroy();
-		if (timeoutId) clearTimeout(timeoutId);
-		await interaction.reply({
-			content: "ボイスチャンネルから退出しました。",
-			ephemeral: true,
-		});
-	} else {
-		await interaction.reply({
-			content: "ボットはボイスチャンネルに接続していません。",
-			ephemeral: true,
-		});
+	try {
+		if (connection) {
+			connection.destroy();
+			if (timeoutId) clearTimeout(timeoutId);
+			await interaction.reply({
+				content: "ボイスチャンネルから退出しました。",
+				ephemeral: true,
+			});
+		} else {
+			await interaction.reply({
+				content: "ボットはボイスチャンネルに接続していません。",
+				ephemeral: true,
+			});
+		}
+	} finally {
+		completeInteraction(interaction.user.id);
 	}
 }
+
 let timeoutId = null;
 export function setDisconnectTimeout(connection) {
 	if (timeoutId) clearTimeout(timeoutId);

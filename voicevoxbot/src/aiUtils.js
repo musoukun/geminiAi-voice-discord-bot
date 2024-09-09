@@ -11,6 +11,7 @@ import {
 } from "@langchain/core/runnables";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { playAudio } from "./voicevoxUtils.js";
+import { completeInteraction } from "./discordUtils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -85,6 +86,7 @@ export async function handleVVAICommand(interaction) {
 			content: "このコマンドはサーバー内でのみ使用できます。",
 			ephemeral: true,
 		});
+		completeInteraction(interaction.user.id);
 		return;
 	}
 
@@ -112,5 +114,7 @@ export async function handleVVAICommand(interaction) {
 			content: "AIの回答生成または読み上げ中にエラーが発生しました。",
 			ephemeral: true,
 		});
+	} finally {
+		completeInteraction(interaction.user.id);
 	}
 }

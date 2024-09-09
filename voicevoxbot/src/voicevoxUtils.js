@@ -10,6 +10,7 @@ import { voicevoxSpeakers, voiceTmpPath } from "./index.js";
 import { connectToVoiceChannel, setDisconnectTimeout } from "./discordUtils.js";
 import { ChannelType } from "discord.js";
 import { AudioPlayerStatus } from "@discordjs/voice";
+import { completeInteraction } from "./discordUtils.js";
 
 export async function fetchVoicevoxSpeakers() {
 	try {
@@ -138,5 +139,7 @@ export async function handleVVCommand(interaction) {
 			content: "読み上げ中にエラーが発生しました。",
 			ephemeral: true,
 		});
+	} finally {
+		completeInteraction(interaction.user.id);
 	}
 }

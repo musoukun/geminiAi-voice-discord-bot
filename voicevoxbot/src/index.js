@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 // 設定の読み込み(トークン、アプリケーションID、ギルドID)
 // この処理が終わるまで他の処理を行わないようにするため同期的に読み込む
 export const { token, applicationId, guildId } = JSON.parse(
-	readFileSync(join(__dirname, "config_hanada.json"), "utf8")
+	readFileSync(join(__dirname, "config.json"), "utf8")
 );
 
 // 定数
