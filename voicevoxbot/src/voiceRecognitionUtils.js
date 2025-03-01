@@ -486,91 +486,87 @@ export async function recordUserVoice(connection, userId, duration = 5000) {
 						return;
 					}
 
-					// Opusパケットをデコードしてファイルに書き込む
+					// シンプルなアプローチに変更: パケットごとにデコーダーを作成せず、1つのデコーダーを使用
+					const opusDecoder = new prism.opus.Decoder({
+						frameSize: 960,
+						channels: 2,
+						rate: 48000,
+					});
+
+					// 一時的なバッファストリームの作成
+					const tempFilePath = `${filePath}.temp`;
+					const tempFileStream = fs.createWriteStream(tempFilePath);
+
+					// デコードされたデータを処理するための関数
+					const handleData = (data) => {
+						tempFileStream.write(data);
+						totalBytesWritten += data.length;
+					};
+
+					// エラー処理用リスナー
+					opusDecoder.on("error", (err) => {
+						console.error("Decoder error:", err);
+						hasErrors = true;
+					});
+
+					// データ処理用リスナー
+					opusDecoder.on("data", handleData);
+
+					// 各Opusパケットをデコーダーに送信
 					for (const chunk of opusChunks) {
-						try {
-							// OpusデコーダーとPCMフォーマッタの設定
-							const opusDecoder = new prism.opus.Decoder({
-								frameSize: 960,
-								channels: 2,
-								rate: 48000,
-							});
-
-							// 各チャンクをデコードしてファイルに書き込む
-							const decoded = opusDecoder.decode(chunk);
-
-							if (decoded) {
-								// バッファ内に異常なデータがないかチェック
-								const pcmData = new Int16Array(
-									decoded.buffer,
-									decoded.byteOffset,
-									decoded.length / 2
-								);
-
-								// サンプルの最小・最大値をチェック
-								let min = Infinity;
-								let max = -Infinity;
-								let hasNaN = false;
-								let zeroCount = 0;
-
-								for (let i = 0; i < pcmData.length; i++) {
-									const sample = pcmData[i];
-									if (isNaN(sample)) {
-										hasNaN = true;
-									} else {
-										min = Math.min(min, sample);
-										max = Math.max(max, sample);
-										if (sample === 0) zeroCount++;
-									}
-								}
-
-								// サンプリングデータのログ
-								if (hasNaN) {
-									console.error(
-										`NaN values detected in PCM data for packet ${opusChunks.indexOf(chunk)}!`
-									);
-									hasErrors = true;
-								}
-
-								// デバッグログ
-								if (opusChunks.indexOf(chunk) % 50 === 0) {
-									console.log(
-										`PCM stats for packet ${opusChunks.indexOf(chunk)}:`
-									);
-									console.log(
-										`- Min: ${min}, Max: ${max}, Zero count: ${zeroCount}/${pcmData.length}`
-									);
-									console.log(
-										`- Has NaN: ${hasNaN}, Buffer size: ${decoded.length} bytes`
-									);
-								}
-
-								fileStream.write(decoded);
-								totalBytesWritten += decoded.length;
-							}
-						} catch (decodeError) {
-							console.error(
-								`Error decoding opus packet:`,
-								decodeError
-							);
-							hasErrors = true;
-							// エラーが発生しても続行
+						if (chunk.length > 0) {
+							opusDecoder.write(chunk);
 						}
 					}
 
-					// ファイルストリームを閉じる
-					fileStream.end();
+					// デコーダーを終了
+					opusDecoder.end();
 
-					// WAVヘッダーの更新を待つ
+					// デコードが完了するのを待つ
 					await new Promise((resolve) => {
-						fileStream.on("close", resolve);
+						opusDecoder.on("end", resolve);
+					});
+
+					// 一時ファイルストリームを閉じる
+					tempFileStream.end();
+					await new Promise((resolve) => {
+						tempFileStream.on("close", resolve);
+					});
+
+					// 一時ファイルからデータを読み取る
+					const pcmData = await fs.promises.readFile(tempFilePath);
+
+					// WAVヘッダーを書き込む
+					const wavHeader = createWavHeader({
+						channels: 2,
+						sampleRate: 48000,
+						bitsPerSample: 16,
+					});
+
+					// 最終的なWAVファイルを作成
+					await fs.promises.writeFile(filePath, wavHeader);
+
+					// PCMデータを追加
+					const finalFileStream = fs.createWriteStream(filePath, {
+						flags: "a",
+					});
+					finalFileStream.write(pcmData);
+					finalFileStream.end();
+
+					// ファイルの書き込みが完了するのを待つ
+					await new Promise((resolve) => {
+						finalFileStream.on("close", resolve);
 					});
 
 					// WAVヘッダーを更新
-					await updateWavHeader(filePath, totalBytesWritten);
+					const totalSize = wavHeader.length + pcmData.length;
+					await updateWavHeader(filePath, totalSize);
+
+					// 一時ファイルを削除
+					await fs.promises.unlink(tempFilePath);
 
 					console.log(
-						`Recording saved to ${filePath}. Total bytes: ${totalBytesWritten}`
+						`Recording saved to ${filePath}. Total bytes: ${totalSize}`
 					);
 
 					if (hasErrors) {
