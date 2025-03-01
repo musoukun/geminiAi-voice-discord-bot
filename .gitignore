@@ -3,3 +3,8 @@ config.json
 /**/dist
 /**/node_modules
 bk/*
+/**/vosk-m
+voicevoxbot/conbine_txt.ps1
+.vscode/launch.json
+voicevoxbot/.vscode/launch.json
+voicevoxbot/src/target-tango-680164fb6081.json

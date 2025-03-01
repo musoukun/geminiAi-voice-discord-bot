@@ -6,6 +6,7 @@ import { dirname } from "path";
 
 import { initializeCommands, handleInteraction } from "./discordUtils.js";
 import { fetchVoicevoxSpeakers } from "./voicevoxUtils.js";
+import { initVoiceRecording } from "./voiceRecognitionUtils.js"; // 追加
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,7 +18,7 @@ export const { token, applicationId, guildId } = JSON.parse(
 );
 
 // 定数
-export const TIMEOUT = 10 * 60 * 1000; // 1                                                                                           0分
+export const TIMEOUT = 10 * 60 * 1000; // 10分
 export const voiceTmpPath = join(__dirname, "voiceTmp");
 
 // グローバル変数
@@ -29,6 +30,9 @@ async function initialize() {
 	if (!existsSync(voiceTmpPath)) {
 		mkdirSync(voiceTmpPath);
 	}
+
+	// 音声録音機能の初期化
+	initVoiceRecording(voiceTmpPath);
 
 	await fetchVoicevoxSpeakers();
 	await initializeCommands(applicationId, guildId, token);
