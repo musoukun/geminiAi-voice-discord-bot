@@ -1,6 +1,6 @@
 # VOICEVOX × Gemini Discord Bot
 
-DiscordのボイスチャットでGemini AIとVOICEVOXを使って会話ができるジェミニです。
+DiscordのボイスチャットでGemini AIとVOICEVOXを使って読み上げができるジェミニです。
 
 ## 機能
 
